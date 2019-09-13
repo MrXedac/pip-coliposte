@@ -50,6 +50,7 @@
 #define COLIPOSTE_REG_INT	0x92
 #define COLIPOSTE_ACK_INT	0x93
 
+static uint32_t buffer = 0;
 task_t srcDescriptor, dstDescriptor;
 uint32_t curPart;
 
@@ -95,14 +96,16 @@ INTERRUPT_HANDLER(sendAsm, sendHandler)
 	log("The mailman is doing his duty. Let's see what I can do with this letter at "); puthex(data1); puts("...\n");
 	if(dstDescriptor.state == READY) {
 		log("Good! I'm removing the letter from the source mailbox.\n");
-		uint32_t vad = Pip_RemoveVAddr(srcDescriptor.part, data1);
-		if(!vad)
+		/* data1 = 0x80000000 - sent by source partition  */
+		uint32_t success = Pip_RemoveVAddr(srcDescriptor.part, data1);
+		if(!success)
 		{
 			log("What? Your mailbox is locked. Please contact your nearest post office.\n");
 			for(;;);
 		}
 		log("Okay, now I'm distributing your letter!\n");
-		if(Pip_MapPageWrapper(vad, dstDescriptor.part, 0x801000))
+		/* buffer : global variable - initialized with alloc_page in main */
+		if(Pip_MapPageWrapper(buffer, dstDescriptor.part, 0x801000))
 		{
 			log("Our mailman encountered a problem while distributing your mail. Please contact your nearest post office.\n");
 		}
@@ -233,7 +236,7 @@ void main(pip_fpinfo* bootinfo)
 	}
 	
 	/* Map Coliposte buffer in sender */
-	uint32_t buffer = (uint32_t)allocPage();
+	buffer = (uint32_t)allocPage();
 	if(mapPageWrapper((uint32_t)buffer, (uint32_t)srcDescriptor.part, (uint32_t)0x800000))
 	{
 		log("Couldn't map Coliposte buffer.\n");

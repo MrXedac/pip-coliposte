@@ -32,6 +32,7 @@
 /*******************************************************************************/
 
 #include <stdint.h>
+#include <pip/api.h>
 #include <pip/fpinfo.h>
 #include <pip/debug.h>
 #include <pip/vidt.h>
